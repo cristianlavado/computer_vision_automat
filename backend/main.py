@@ -1,6 +1,5 @@
 import asyncio
 import websockets
-import requests
 import string
 import random
 
