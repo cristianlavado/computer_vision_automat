@@ -1,21 +1,51 @@
 import asyncio
-import websockets
 import string
 import random
+import json
+from io import BytesIO
+
+import websockets
+from PIL import Image
 
 async def analyze_frame(websocket):
     while True:
         frame = await websocket.recv()
-        # with open("image.jpg", "wb") as f:
-        #     f.write(frame)
+        frame = Image.open(BytesIO(frame))
+        width, height = frame.size
+
+        await asyncio.sleep(3) #Simulate detection...
+        detections = [
+            {
+                "x": int(width * 1/random.randint(2,10)),
+                "y": int(height * 1/random.randint(2,10)),
+                "width": int(width * 1/random.randint(2,10)),
+                "height": int(height * 1/random.randint(2,10)),
+                "class_name": "person",
+                "score": 1/random.randint(1,10)
+            },
+            {
+                "x": int(width * 1/random.randint(2,10)),
+                "y": int(height * 1/random.randint(2,10)),
+                "width": int(width * 1/random.randint(2,10)),
+                "height": int(height * 1/random.randint(2,10)),
+                "class_name": "cell phone",
+                "score": 1/random.randint(1,10)
+            }
+        ]
+
         chars = string.ascii_letters + string.digits + string.punctuation
-        random_quote = ''.join([random.choice(chars) for _ in range(35)])
-        await websocket.send(random_quote)
-        await asyncio.sleep(3)
+
+        response = {
+            "conclusion": ''.join([random.choice(chars) for _ in range(35)]),
+            "detections": detections,
+        }
+
+        await websocket.send(json.dumps(response))
 
 async def main():
     async with websockets.serve(analyze_frame, "localhost", 6789):
         print("WebSocket server started at ws://localhost:6789")
         await asyncio.Future()
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())

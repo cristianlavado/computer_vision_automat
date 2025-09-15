@@ -33,7 +33,7 @@ const WebcamComponent: React.FC<{ detections: any[] }> = ({ detections }) => {
     }, 100);
 
     return () => clearInterval(interval);
-  }, [socket_results]);
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -58,26 +58,26 @@ const WebcamComponent: React.FC<{ detections: any[] }> = ({ detections }) => {
   }, [detections]);
 
   return (
-    <div className="flex flex-col items-center justify-center bg-gray-900 p-4 rounded-lg border border-gray-700 shadow-lg">
-    <Webcam
-      audio={false}
-      ref={webcamRef}
-      width={320}
-      height={240}
-      screenshotFormat="image/jpeg"
-      videoConstraints={{
-        width: 320,
-        height: 240,
-        facingMode: 'user',
-      }}
-      className="rounded-md border border-gray-600"
+    <div className="relative w-[320px] h-[240px] bg-gray-900 p-4 rounded-lg border border-gray-700 shadow-lg">
+      <Webcam
+        audio={false}
+        ref={webcamRef}
+        width={320}
+        height={240}
+        screenshotFormat="image/jpeg"
+        videoConstraints={{
+          width: 320,
+          height: 240,
+          facingMode: 'user',
+        }}
+        className="absolute top-0 left-0 z-0 rounded-md border border-gray-600"
       />
       <canvas
         ref={canvasRef}
         width={320}
         height={240}
-        className="absolute top-0 left-0 z-10"
-    />
+        className="absolute top-0 left-0 z-10 pointer-events-none"
+      />
     </div>
   );
 };
