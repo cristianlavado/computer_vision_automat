@@ -5,6 +5,9 @@ import requests
 
 async def enviar_frases(websocket):
     while True:
+        frame = await websocket.recv()
+        # with open("imagen.jpg", "wb") as f:
+        #     f.write(frame)
         frase = requests.get('https://api.chucknorris.io/jokes/random').json()["value"]
 
         await websocket.send(frase)

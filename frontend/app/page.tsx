@@ -3,8 +3,36 @@
 import React, { useRef, useState, useEffect } from 'react';
 import Webcam from 'react-webcam';
 
+const socket_results = new WebSocket("ws://localhost:6789");
+
+function base64ToBlob(base64: string, mimeType: string = "image/jpeg"): Blob {
+  const byteString = atob(base64.split(",")[1]);
+  const arrayBuffer = new ArrayBuffer(byteString.length);
+  const intArray = new Uint8Array(arrayBuffer);
+
+  for (let i = 0; i < byteString.length; i++) {
+    intArray[i] = byteString.charCodeAt(i);
+  }
+
+  return new Blob([intArray], { type: mimeType });
+}
+
 const WebcamComponent: React.FC = () => {
   const webcamRef = useRef<Webcam>(null);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (webcamRef.current && socket_results?.readyState === WebSocket.OPEN) {
+        const imageSrc = webcamRef.current.getScreenshot();
+        if (imageSrc) {
+          const blob = base64ToBlob(imageSrc);
+          socket_results.send(blob);
+        }
+      }
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [socket_results]);
 
   return (
     <div className="flex flex-col items-center justify-center bg-gray-900 p-4 rounded-lg border border-gray-700 shadow-lg">
@@ -80,18 +108,16 @@ export default function Home() {
   const [frase, setFrase] = useState<string>("");
 
   useEffect(() => {
-    const socket = new WebSocket("ws://localhost:6789");
-
-    socket.onmessage = (event) => {
+    socket_results.onmessage = (event) => {
       setFrase(event.data);
     };
 
-    socket.onerror = (error) => {
+    socket_results.onerror = (error) => {
       console.error("WebSocket error:", error);
     };
 
     return () => {
-      socket.close();
+      socket_results.close();
     };
   }, []);
 
