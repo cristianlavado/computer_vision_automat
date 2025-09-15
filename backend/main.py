@@ -1,22 +1,22 @@
 import asyncio
 import websockets
 import requests
+import string
+import random
 
-
-async def enviar_frases(websocket):
+async def analyze_frame(websocket):
     while True:
         frame = await websocket.recv()
-        # with open("imagen.jpg", "wb") as f:
+        # with open("image.jpg", "wb") as f:
         #     f.write(frame)
-        frase = requests.get('https://api.chucknorris.io/jokes/random').json()["value"]
-
-        await websocket.send(frase)
-        print(f"Frase enviada: {frase}")
+        chars = string.ascii_letters + string.digits + string.punctuation
+        random_quote = ''.join([random.choice(chars) for _ in range(35)])
+        await websocket.send(random_quote)
         await asyncio.sleep(3)
 
 async def main():
-    async with websockets.serve(enviar_frases, "localhost", 6789):
-        print("Servidor WebSocket iniciado en ws://localhost:6789")
+    async with websockets.serve(analyze_frame, "localhost", 6789):
+        print("WebSocket server started at ws://localhost:6789")
         await asyncio.Future()
 
 asyncio.run(main())
