@@ -3,24 +3,81 @@
 import React, { useRef, useState, useEffect } from 'react';
 import Webcam from 'react-webcam';
 
-const WebcamComponent: React.FC = () => {
+const socket_results = new WebSocket("ws://localhost:6789");
+
+function base64ToBlob(base64: string, mimeType: string = "image/jpeg"): Blob {
+  const byteString = atob(base64.split(",")[1]);
+  const arrayBuffer = new ArrayBuffer(byteString.length);
+  const intArray = new Uint8Array(arrayBuffer);
+
+  for (let i = 0; i < byteString.length; i++) {
+    intArray[i] = byteString.charCodeAt(i);
+  }
+
+  return new Blob([intArray], { type: mimeType });
+}
+
+const WebcamComponent: React.FC<{ detections: any[] }> = ({ detections }) => {
   const webcamRef = useRef<Webcam>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (webcamRef.current && socket_results?.readyState === WebSocket.OPEN) {
+        const imageSrc = webcamRef.current.getScreenshot();
+        if (imageSrc) {
+          const blob = base64ToBlob(imageSrc);
+          socket_results.send(blob);
+        }
+      }
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !detections) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    detections.forEach((det: any) => {
+      const { x, y, width, height, class_name, score } = det;
+
+      ctx.strokeStyle = "lime";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x, y, width, height);
+
+      ctx.fillStyle = "lime";
+      ctx.font = "12px Arial";
+      ctx.fillText(`${class_name} (${(score * 100).toFixed(1)}%)`, x, y - 5);
+    });
+  }, [detections]);
 
   return (
-    <div className="flex flex-col items-center justify-center bg-gray-900 p-4 rounded-lg border border-gray-700 shadow-lg">
-    <Webcam
-      audio={false}
-      ref={webcamRef}
-      width={320}
-      height={240}
-      screenshotFormat="image/jpeg"
-      videoConstraints={{
-        width: 320,
-        height: 240,
-        facingMode: 'user',
-      }}
-      className="rounded-md border border-gray-600"
-    />
+    <div className="relative w-[320px] h-[240px] bg-gray-900 p-4 rounded-lg border border-gray-700 shadow-lg">
+      <Webcam
+        audio={false}
+        ref={webcamRef}
+        width={320}
+        height={240}
+        screenshotFormat="image/jpeg"
+        videoConstraints={{
+          width: 320,
+          height: 240,
+          facingMode: 'user',
+        }}
+        className="absolute top-0 left-0 z-0 rounded-md border border-gray-600"
+      />
+      <canvas
+        ref={canvasRef}
+        width={320}
+        height={240}
+        className="absolute top-0 left-0 z-10 pointer-events-none"
+      />
     </div>
   );
 };
@@ -78,20 +135,25 @@ const ChatComponent: React.FC = () => {
 
 export default function Home() {
   const [frase, setFrase] = useState<string>("");
+  const [detections, setDetections] = useState<any[]>([]);
 
   useEffect(() => {
-    const socket = new WebSocket("ws://localhost:6789");
-
-    socket.onmessage = (event) => {
-      setFrase(event.data);
+    socket_results.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        setFrase(data.conclusion);
+        setDetections(data.detections);
+      } catch (err) {
+        console.error("Error parsing WebSocket message:", err);
+      }
     };
 
-    socket.onerror = (error) => {
+    socket_results.onerror = (error) => {
       console.error("WebSocket error:", error);
     };
 
     return () => {
-      socket.close();
+      socket_results.close();
     };
   }, []);
 
@@ -102,7 +164,7 @@ export default function Home() {
           <ChatComponent />
         </div>
         <div className="flex flex-col justify-start items-center w-full h-full space-y-4">
-          <WebcamComponent />
+          <WebcamComponent detections={detections} />
           <div
             key={frase}
             style={{

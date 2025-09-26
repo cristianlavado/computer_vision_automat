@@ -1,19 +1,51 @@
 import asyncio
+import string
+import random
+import json
+from io import BytesIO
+
 import websockets
-import requests
+from PIL import Image
 
-
-async def enviar_frases(websocket):
+async def analyze_frame(websocket):
     while True:
-        frase = requests.get('https://api.chucknorris.io/jokes/random').json()["value"]
+        frame = await websocket.recv()
+        frame = Image.open(BytesIO(frame))
+        width, height = frame.size
 
-        await websocket.send(frase)
-        print(f"Frase enviada: {frase}")
-        await asyncio.sleep(3)
+        await asyncio.sleep(3) #Simulate detection...
+        detections = [
+            {
+                "x": int(width * 1/random.randint(2,10)),
+                "y": int(height * 1/random.randint(2,10)),
+                "width": int(width * 1/random.randint(2,10)),
+                "height": int(height * 1/random.randint(2,10)),
+                "class_name": "person",
+                "score": 1/random.randint(1,10)
+            },
+            {
+                "x": int(width * 1/random.randint(2,10)),
+                "y": int(height * 1/random.randint(2,10)),
+                "width": int(width * 1/random.randint(2,10)),
+                "height": int(height * 1/random.randint(2,10)),
+                "class_name": "cell phone",
+                "score": 1/random.randint(1,10)
+            }
+        ]
+
+        chars = string.ascii_letters + string.digits + string.punctuation
+
+        response = {
+            "conclusion": ''.join([random.choice(chars) for _ in range(35)]),
+            "detections": detections,
+        }
+
+        await websocket.send(json.dumps(response))
 
 async def main():
-    async with websockets.serve(enviar_frases, "localhost", 6789):
-        print("Servidor WebSocket iniciado en ws://localhost:6789")
+    async with websockets.serve(analyze_frame, "localhost", 6789):
+        print("WebSocket server started at ws://localhost:6789")
         await asyncio.Future()
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())
