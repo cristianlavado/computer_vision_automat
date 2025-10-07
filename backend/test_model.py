@@ -2,11 +2,11 @@ from ultralytics import YOLO
 import cv2
 
 
-model = YOLO("yolo12n.pt")
+model = YOLO("backend/yolo12n.pt")
 
 cap = cv2.VideoCapture(0)
-cap.set(3, 640)
-cap.set(4, 480)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
 while True:
     ret, frame = cap.read()
