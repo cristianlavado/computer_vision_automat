@@ -14,6 +14,14 @@ async def analyze_frame(websocket):
         width, height = frame.size
 
         await asyncio.sleep(3) #Simulate detection...
+        """
+        x: The x-coordinate of the top-left corner of the bounding box.
+        y: The y-coordinate of the top-left corner of the bounding box.
+        width: The width of the bounding box.
+        height: The height of the bounding box.
+        class_name: The label or class of the detected object (e.g., "person", "car").
+        score: The confidence score of the detection (usually between 0 and 1).
+        """
         detections = [
             {
                 "x": int(width * 1/random.randint(2,10)),
