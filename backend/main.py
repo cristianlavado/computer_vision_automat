@@ -3,17 +3,22 @@ import string
 import random
 import json
 from io import BytesIO
+from ultralytics import YOLO
 
 import websockets
 from PIL import Image
+
+model = YOLO("backend/yolo12n.pt")
 
 async def analyze_frame(websocket):
     while True:
         frame = await websocket.recv()
         frame = Image.open(BytesIO(frame))
+        results = model(frame)
+        print('results:', results)
         width, height = frame.size
 
-        await asyncio.sleep(3) #Simulate detection...
+        #await asyncio.sleep(3) #Simulate detection...
         """
         x: The x-coordinate of the top-left corner of the bounding box.
         y: The y-coordinate of the top-left corner of the bounding box.
